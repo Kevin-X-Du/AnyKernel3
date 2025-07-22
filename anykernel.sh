@@ -86,24 +86,11 @@ else
     write_boot
 fi
 
-# 优先选择模块路径
-if [ -f "$AKHOME/ksu_module_susfs_1.5.2+_Release.zip" ]; then
-    MODULE_PATH="$AKHOME/ksu_module_susfs_1.5.2+_Release.zip"
-    ui_print "  -> Installing SUSFS Module from Release"
-elif [ -f "$AKHOME/ksu_module_susfs_1.5.2+_CI.zip" ]; then
-    MODULE_PATH="$AKHOME/ksu_module_susfs_1.5.2+_CI.zip"
-    ui_print "  -> Installing SUSFS Module from CI"
-else
-    ui_print "  -> No SUSFS Module found, Installing SUSFS Module from NONE, Skipping Installation"
-    MODULE_PATH=""
-fi
-
-# 安装 SUSFS 模块（可选）
-if [ -n "$MODULE_PATH" ]; then
-    KSUD_PATH="/data/adb/ksud"
+# 检查 SUSFS 模块是否存在
+if [ -f "$AKHOME/ksu_module_susfs_1.5.2+_Release.zip" ] || [ -f "$AKHOME/ksu_module_susfs_1.5.2+_CI.zip" ]; then
     ui_print "安装 SUSFS 模块?"
-    ui_print "音量上跳过安装；音量下安装模块"
     ui_print "Install susfs4ksu Module?"
+    ui_print "音量上键：跳过安装；音量下键：继续安装"
     ui_print "Volume UP: NO；Volume DOWN: YES"
 
     key_click=""
@@ -113,12 +100,55 @@ if [ -n "$MODULE_PATH" ]; then
     done
     case "$key_click" in
         "KEY_VOLUMEDOWN")
-            if [ -f "$KSUD_PATH" ]; then
-                ui_print "Installing SUSFS Module..."
-                /data/adb/ksud module install "$MODULE_PATH"
-                ui_print "Installation Complete"
-            else
-                ui_print "KSUD Not Found, Skipping Installation"
+            # 用户选择继续安装，提示选择模块版本
+            ui_print "请选择要安装的 SUSFS 模块版本："
+            ui_print "Please select the SUSFS module version to install:"
+            ui_print "音量上键：Release 版本 (ksu_module_susfs_1.5.2+_Release.zip)"
+            ui_print "Volume UP: Release version (ksu_module_susfs_1.5.2+_Release.zip)"
+            ui_print "音量下键：CI 版本 (ksu_module_susfs_1.5.2+_CI.zip)"
+            ui_print "Volume DOWN: CI version (ksu_module_susfs_1.5.2+_CI.zip)"
+
+            MODULE_PATH=""
+            key_click=""
+            while [ "$key_click" = "" ]; do
+                key_click=$(getevent -qlc 1 | awk '{ print $3 }' | grep 'KEY_VOLUME')
+                sleep 0.2
+            done
+            case "$key_click" in
+                "KEY_VOLUMEUP")
+                    if [ -f "$AKHOME/ksu_module_susfs_1.5.2+_Release.zip" ]; then
+                        MODULE_PATH="$AKHOME/ksu_module_susfs_1.5.2+_Release.zip"
+                        ui_print "  -> Selected SUSFS Module: Release version"
+                    else
+                        ui_print "  -> Release version not found, skipping installation"
+                        MODULE_PATH=""
+                    fi
+                    ;;
+                "KEY_VOLUMEDOWN")
+                    if [ -f "$AKHOME/ksu_module_susfs_1.5.2+_CI.zip" ]; then
+                        MODULE_PATH="$AKHOME/ksu_module_susfs_1.5.2+_CI.zip"
+                        ui_print "  -> Selected SUSFS Module: CI version"
+                    else
+                        ui_print "  -> CI version not found, skipping installation"
+                        MODULE_PATH=""
+                    fi
+                    ;;
+                *)
+                    ui_print "  -> Unknown key input, skipping SUSFS module installation"
+                    MODULE_PATH=""
+                    ;;
+            esac
+
+            # 安装选定的 SUSFS 模块
+            if [ -n "$MODULE_PATH" ]; then
+                KSUD_PATH="/data/adb/ksud"
+                if [ -f "$KSUD_PATH" ]; then
+                    ui_print "Installing SUSFS Module..."
+                    /data/adb/ksud module install "$MODULE_PATH"
+                    ui_print "Installation Complete"
+                else
+                    ui_print "KSUD Not Found, Skipping Installation"
+                fi
             fi
             ;;
         "KEY_VOLUMEUP")
@@ -128,37 +158,42 @@ if [ -n "$MODULE_PATH" ]; then
             ui_print "Unknown Key Input, Skipping Installation"
             ;;
     esac
+else
+    ui_print "  -> No SUSFS Module found, Installing SUSFS Module from NONE, Skipping Installation"
 fi
 
 # 交互式安装 SukiSU Ultra APK 作为用户应用
-ui_print "检查 SukiSU Ultra APK..."
-apk_file=$(ls $AKHOME/*.apk 2>/dev/null | head -n1)
-if [ -n "$apk_file" ]; then
-    ui_print "找到 SukiSU Ultra APK ($apk_file)"
-    ui_print "安装 SukiSU Ultra APK 作为用户应用？"
-    ui_print "Install SukiSU Ultra APK as user app?"
-    ui_print "音量上键跳过安装；音量下键安装APK"
-    ui_print "Volume UP: NO; Volume DOWN: YES"
-    ui_print "安装时APK闪退是正常现象"
-    ui_print "It is normal for APK to crash during installation."
+ui_print "安装 SukiSU Ultra APK 作为用户应用？"
+ui_print "Install SukiSU Ultra APK as user app?"
+ui_print "音量上键：跳过安装；音量下键：安装APK"
+ui_print "Volume UP: NO; Volume DOWN: YES"
+ui_print "安装时APK闪退是正常现象"
+ui_print "It is normal for APK to crash during installation."
 
-    key_click=""
-    while [ "$key_click" = "" ]; do
-        key_click=$(getevent -qlc 1 | awk '{ print $3 }' | grep 'KEY_VOLUME')
-        sleep 0.2
-    done
-    case "$key_click" in
-        "KEY_VOLUMEDOWN")
-            ui_print "  -> 正在安装 SukiSU Ultra APK 到用户应用目录..."
-            pm install -r "$apk_file" && ui_print "  -> SukiSU Ultra APK 安装完成" || ui_print "  -> SukiSU Ultra APK 安装失败"
-            ;;
-        "KEY_VOLUMEUP")
-            ui_print "  -> 跳过 SukiSU Ultra APK 安装"
-            ;;
-        *)
-            ui_print "  -> 未知按键输入，跳过 SukiSU Ultra APK 安装"
-            ;;
-    esac
-else
-    ui_print "  -> 未找到 SukiSU Ultra APK，跳过安装"
-fi
+key_click=""
+while [ "$key_click" = "" ]; do
+    key_click=$(getevent -qlc 1 | awk '{ print $3 }' | grep 'KEY_VOLUME')
+    sleep 0.2
+done
+case "$key_click" in
+    "KEY_VOLUMEDOWN")
+        apk_file=$(ls $AKHOME/*.apk 2>/dev/null | head -n1)
+        ui_print "  -> 正在安装 SukiSU Ultra APK 到用户应用目录..."
+        if [ -n "$apk_file" ]; then
+            pm_install_output=$(pm install -r "$apk_file" 2>&1)
+            if [ $? -eq 0 ]; then
+                ui_print "  -> SukiSU Ultra APK 安装完成"
+            else
+                ui_print "  -> SukiSU Ultra APK 安装失败: $pm_install_output"
+            fi
+        else
+            ui_print "  -> 未找到 SukiSU Ultra APK，尝试安装失败"
+        fi
+        ;;
+    "KEY_VOLUMEUP")
+        ui_print "  -> 跳过 SukiSU Ultra APK 安装"
+        ;;
+    *)
+        ui_print "  -> 未知按键输入，跳过 SukiSU Ultra APK 安装"
+        ;;
+esac
