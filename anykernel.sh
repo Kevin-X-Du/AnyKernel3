@@ -139,6 +139,8 @@ if [ -n "$apk_file" ]; then
     ui_print "Install SukiSU Ultra APK as user app?"
     ui_print "音量上键跳过安装；音量下键安装APK"
     ui_print "Volume UP: NO; Volume DOWN: YES"
+    ui_print "安装时APK闪退是正常现象"
+    ui_print "It is normal for APK to crash during installation."
 
     key_click=""
     while [ "$key_click" = "" ]; do
