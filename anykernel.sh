@@ -94,7 +94,7 @@ elif [ -f "$AKHOME/ksu_module_susfs_1.5.2+_CI.zip" ]; then
     MODULE_PATH="$AKHOME/ksu_module_susfs_1.5.2+_CI.zip"
     ui_print "  -> Installing SUSFS Module from CI"
 else
-    ui_print "  -> No SUSFS Module found,Installing SUSFS Module from NON,Skipping Installation"
+    ui_print "  -> No SUSFS Module found, Installing SUSFS Module from NONE, Skipping Installation"
     MODULE_PATH=""
 fi
 
@@ -128,4 +128,35 @@ if [ -n "$MODULE_PATH" ]; then
             ui_print "Unknown Key Input, Skipping Installation"
             ;;
     esac
+fi
+
+# 交互式安装 SukiSU Ultra APK 作为用户应用
+ui_print "检查 SukiSU Ultra APK..."
+apk_file=$(ls $AKHOME/*.apk 2>/dev/null | head -n1)
+if [ -n "$apk_file" ]; then
+    ui_print "找到 SukiSU Ultra APK ($apk_file)"
+    ui_print "安装 SukiSU Ultra APK 作为用户应用？"
+    ui_print "Install SukiSU Ultra APK as user app?"
+    ui_print "音量上键跳过安装；音量下键安装APK"
+    ui_print "Volume UP: NO; Volume DOWN: YES"
+
+    key_click=""
+    while [ "$key_click" = "" ]; do
+        key_click=$(getevent -qlc 1 | awk '{ print $3 }' | grep 'KEY_VOLUME')
+        sleep 0.2
+    done
+    case "$key_click" in
+        "KEY_VOLUMEDOWN")
+            ui_print "  -> 正在安装 SukiSU Ultra APK 到用户应用目录..."
+            pm install -r "$apk_file" && ui_print "  -> SukiSU Ultra APK 安装完成" || ui_print "  -> SukiSU Ultra APK 安装失败"
+            ;;
+        "KEY_VOLUMEUP")
+            ui_print "  -> 跳过 SukiSU Ultra APK 安装"
+            ;;
+        *)
+            ui_print "  -> 未知按键输入，跳过 SukiSU Ultra APK 安装"
+            ;;
+    esac
+else
+    ui_print "  -> 未找到 SukiSU Ultra APK，跳过安装"
 fi
